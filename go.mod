@@ -1,4 +1,4 @@
-module github.com/harperreed/serial_proxy
+module github.com/harperreed/hanover-display-simulator
 
 go 1.23.0
 
