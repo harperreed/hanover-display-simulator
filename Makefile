@@ -5,7 +5,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
-BINARY_NAME=serial_proxy
+BINARY_NAME=hanover-simulator
 BINARY_UNIX=$(BINARY_NAME)_unix
 
 # Build flags
