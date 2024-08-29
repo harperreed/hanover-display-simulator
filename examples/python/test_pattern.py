@@ -1,10 +1,9 @@
-import numpy as np
 from pyflipdot.pyflipdot import HanoverController
-from pyflipdot.sign import HanoverSign
 from serial_proxy import SerialProxy
+import config
 
-# Create a serial port (update with port name on your system)
-ser = SerialProxy('/dev/pts/3', 4800, log_file="proxy.log")
+# Create a serial port
+ser = SerialProxy(config.SERIAL_PORT, config.BAUD_RATE, log_file=config.LOG_PATH)
 
 # Create a controller
 controller = HanoverController(ser)
