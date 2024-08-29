@@ -27,6 +27,7 @@ func processPackets() {
 		log.Infof("Processing packet: timestamp=%v, length=%d",
 			packet.Timestamp, len(packet.Data))
 		parseData(packet.Data)
+		notifyNewPacket() // Notify clients about the new packet
 	}
 }
 
