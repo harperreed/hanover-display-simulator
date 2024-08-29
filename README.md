@@ -23,7 +23,7 @@ The Hanover Display Simulator is a Go application that simulates a Hanover flipd
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/hanover-display-simulator.git
+   git clone https://github.com/harperreed/hanover-display-simulator.git
    cd hanover-display-simulator
    ```
 
