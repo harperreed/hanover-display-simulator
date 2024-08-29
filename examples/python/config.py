@@ -20,4 +20,4 @@ LOG_PATH = os.path.join(BASE_DIR, LOG_FILE)
 TEST_PACKET = b'\x02\x11\x01\x00\xC0' + b'\xFF' * 192 + b'\x03\x00\x00'
 
 # Checkerboard configuration
-CHECKERBOARD_INTERVAL = 2  # Interval for checkerboard pattern
+CHECKERBOARD_INTERVAL = 3  # Interval for checkerboard pattern

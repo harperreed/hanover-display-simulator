@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hanover Display Simulator</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        function setupEventSource() {
+            var eventSource = new EventSource("/events");
+            eventSource.onmessage = function(event) {
+                document.getElementById("display-container").innerHTML = event.data;
+            };
+            eventSource.onerror = function(error) {
+                console.error("EventSource failed:", error);
+                eventSource.close();
+                setTimeout(setupEventSource, 5000);
+            };
+        }
+        window.onload = setupEventSource;
+    </script>
+</head>
+<body>
+    <h1>Hanover Display Simulator</h1>
+    <div id="display-container">
+        {{template "display" .}}
+    </div>
+</body>
+</html>

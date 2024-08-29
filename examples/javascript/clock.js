@@ -12,8 +12,12 @@ function startClock(seconds = false, font = 'Banner', offset = [0,0], invert = f
   var lastString = [];
   var task = setInterval( function() {
     var now = new Date();
-    var timeString = dateFormat(now,format);
+    var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+
+    // var timeString = dateFormat(now,format);
+    var timeString = now.toLocaleTimeString("en-US")
     if (timeString != lastString) {
+      console.log(timeString)
       flippy.writeText(timeString, {font: font}, offset, invert);
       flippy.send();
       lastString = timeString;
