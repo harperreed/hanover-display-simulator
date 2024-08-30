@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
-	"strconv"
 	"sync"
 	"time"
+ 	// "encoding/hex"
+    "strconv"
 )
 
 type Packet struct {
@@ -73,59 +74,62 @@ func processPackets() {
 	}
 }
 
+
 func parseData(data []byte) {
-	log.Infof("Parsing data: length=%d", len(data))
-	if len(data) < 9 { // Minimum length: STX + CMD + ADDR + RES(2) + ETX + CHECKSUM(2)
-		log.Warn("Received data too short")
-		return
-	}
+    log.Infof("Parsing data: length=%d", len(data))
+    if len(data) < 9 {
+        log.Warnf("Received data too short: got %d bytes, expected at least 9", len(data))
+        return
+    }
 
-	if data[0] != 0x02 || data[len(data)-3] != 0x03 {
-		log.Warn("Invalid start or end byte")
-		return
-	}
+    log.Infof("Packet header: %X", data[:5])
+    log.Infof("Packet footer: %X", data[len(data)-3:])
+    log.Infof("Full packet: %X", data)
 
-	// Parse command (we're not using it currently, but it might be useful later)
-	command := string(data[1])
-	log.Infof("Command: %s", command)
+    if data[0] != 0x02 || data[len(data)-3] != 0x03 {
+        log.Warn("Invalid start or end byte")
+        return
+    }
 
-	// Parse address
-	addressStr := string(data[2])
-	address, err := strconv.Atoi(addressStr)
-	if err != nil {
-		log.Warnf("Error parsing address: %v", err)
-		return
-	}
-	if address != config.Address {
-		log.Warnf("Message not for this display. Expected: %d, Got: %d", config.Address, address)
-		return
-	}
+    if !verifyChecksum(data) {
+        log.Warn("Invalid checksum")
+        return
+    }
 
-	// Parse resolution
-	resolutionStr := string(data[3:5])
-	resolution, err := strconv.ParseUint(resolutionStr, 16, 16)
-	if err != nil {
-		log.Warnf("Error parsing resolution: %v", err)
-		return
-	}
-	expectedResolution := uint64((config.Rows * config.Columns) / 8)
-	if resolution != expectedResolution {
-		log.Warnf("Unexpected resolution. Expected: %d, Got: %d", expectedResolution, resolution)
-	}
+    // Parse command
+    command := data[1]
+    log.Infof("Command: %X", command)
 
-	// Parse pixel data
-	pixelData := data[5 : len(data)-3]
-	log.Infof("Pixel data length: %d", len(pixelData))
+    // Parse address
+    address := int(data[2])
+    if address != config.Address {
+        log.Warnf("Message not for this display. Expected: %d, Got: %d", config.Address, address)
+        return
+    }
 
-	updatedPixels := updateDisplay(pixelData)
+    // Parse resolution
+    resolution := uint16(data[3])<<8 | uint16(data[4])
+    expectedResolution := uint16((config.Rows * config.Columns) / 8)
+    if resolution != expectedResolution {
+        log.Warnf("Unexpected resolution. Expected: %d, Got: %d", expectedResolution, resolution)
+    }
 
-	log.Infof("Data parsed successfully. Updated %d pixels.", updatedPixels)
+    // Parse pixel data
+    pixelData := data[5 : len(data)-3]
+    log.Infof("Pixel data length: %d", len(pixelData))
+    log.Infof("First few bytes of pixel data: %X", pixelData[:min(20, len(pixelData))])
 
-	// Log the first few rows of the display for debugging
-	for i := 0; i < min(5, len(display.pixels)); i++ {
-		log.Infof("Row %d: %v", i, display.pixels[i][:min(10, len(display.pixels[i]))])
-	}
+    updatedPixels := updateDisplay(pixelData)
+
+    log.Infof("Data parsed successfully. Updated %d pixels.", updatedPixels)
+
+    // Log the first few rows of the display for debugging
+    for i := 0; i < min(5, len(display.pixels)); i++ {
+        log.Infof("Row %d: %v", i, display.pixels[i][:min(20, len(display.pixels[i]))])
+    }
 }
+
+
 
 func reassemblePacket(data []byte) [][]byte {
 	var completePackets [][]byte
@@ -166,8 +170,74 @@ func reassemblePacket(data []byte) [][]byte {
 }
 
 func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+    if a < b {
+        return a
+    }
+    return b
+}
+
+func verifyChecksum(data []byte) bool {
+    if len(data) < 4 {
+        log.Warn("Packet too short for checksum verification")
+        return false
+    }
+
+    log.Infof("Full packet data: %X", data)
+
+    // Extract the checksum from the packet
+    checksumStr := string(data[len(data)-2:])
+    log.Infof("Checksum string: %s", checksumStr)
+
+    // Parse the checksum as a hexadecimal number
+    packetChecksum, err := strconv.ParseUint(checksumStr, 16, 8)
+    if err != nil {
+        log.Errorf("Failed to parse checksum as hex: %v", err)
+        return false
+    }
+    log.Infof("Packet checksum: %02X", packetChecksum)
+
+    // Calculate the sum of all bytes excluding SOT (first byte) and the checksum itself
+    var sum uint32
+    for _, b := range data[1 : len(data)-2] {
+        sum += uint32(b)
+    }
+    log.Infof("Sum of data (excluding SOT and checksum): %08X", sum)
+
+    // Subtract SOT (0x02) from the sum
+    sum -= 0x02
+    log.Infof("Sum after subtracting SOT: %08X", sum)
+
+    // XOR with 0xFF (255)
+    sum ^= 0xFF
+    log.Infof("Sum after XOR with 0xFF: %08X", sum)
+
+    // Add 1
+    sum += 1
+    log.Infof("Sum after adding 1: %08X", sum)
+
+    // Take the least significant byte
+    calculatedChecksum := byte(sum & 0xFF)
+    log.Infof("Calculated checksum: %02X", calculatedChecksum)
+
+    // Compare the calculated checksum with the packet checksum
+    isValid := calculatedChecksum == byte(packetChecksum)
+    log.Infof("Checksum valid: %v", isValid)
+
+    return isValid
+}
+
+// CRC-16 (CCITT) implementation
+func crc16(data []byte) uint16 {
+    crc := uint16(0xFFFF)
+    for _, b := range data {
+        crc ^= uint16(b) << 8
+        for i := 0; i < 8; i++ {
+            if crc&0x8000 != 0 {
+                crc = (crc << 1) ^ 0x1021
+            } else {
+                crc <<= 1
+            }
+        }
+    }
+    return crc
 }

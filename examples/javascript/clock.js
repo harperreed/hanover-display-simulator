@@ -1,7 +1,7 @@
 var FlipDot = require('flipdot-display');
 var dateFormat = require('dateformat');
 
-var flippy = new FlipDot('/dev/pts/1',1,16,96);
+var flippy = new FlipDot('/dev/pts/3',1,16,96);
 
 function startClock(seconds = false, font = 'Banner', offset = [0,0], invert = false) {
   var format = "HH:MM"

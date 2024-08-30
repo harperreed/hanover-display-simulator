@@ -28,10 +28,10 @@ func updateDisplay(pixelData []byte) int {
     updatedPixels := 0
     byteIndex := 0
     for col := 0; col < config.Columns; col++ {
-        if byteIndex+1 >= len(pixelData) {
+        if byteIndex >= len(pixelData) {
             break
         }
-        byteVal, err := strconv.ParseUint(string(pixelData[byteIndex:byteIndex+2]), 16, 8)
+        byteVal, err := strconv.ParseUint(string(pixelData[byteIndex]), 16, 8)
         if err != nil {
             log.Warnf("Error parsing pixel data at position %d: %v", byteIndex, err)
             continue
@@ -39,14 +39,14 @@ func updateDisplay(pixelData []byte) int {
         for bit := 0; bit < 8; bit++ {
             row := bit
             if row < config.Rows {
-                newValue := (byte(byteVal) & (1 << uint(7-bit))) != 0
+                newValue := (byte(byteVal) & (1 << uint(bit))) != 0
                 if display.pixels[row][col] != newValue {
                     display.pixels[row][col] = newValue
                     updatedPixels++
                 }
             }
         }
-        byteIndex += 2
+        byteIndex++
     }
 
     return updatedPixels
