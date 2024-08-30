@@ -1,3 +1,18 @@
 {{define "display"}}
-<table>{{range .}}<tr>{{range .}}<td class="{{if .}}on{{else}}off{{end}}"></td>{{end}}</tr>{{end}}</table>
+<table>
+  <tr>
+    <th></th>
+    {{range $colIndex := iterate .Columns}}
+      <th class="column-header">{{$colIndex}}</th>
+    {{end}}
+  </tr>
+  {{range $rowIndex := iterate .Rows}}
+    <tr>
+      <th class="row-header">{{$rowIndex}}</th>
+      {{range $colIndex := iterate $.Columns}}
+        <td class="{{if index $.Pixels $rowIndex $colIndex}}on{{else}}off{{end}}"></td>
+      {{end}}
+    </tr>
+  {{end}}
+</table>
 {{end}}

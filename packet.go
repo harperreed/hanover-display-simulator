@@ -2,20 +2,56 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
 type Packet struct {
-	Timestamp time.Time
-	Data      []byte
+	Timestamp time.Time `json:"timestamp"`
+	Data      []byte    `json:"data"`
 }
 
 var (
 	packetLog     []Packet
 	packetChan    = make(chan Packet, 100)
 	partialPacket []byte
+	logFile       *os.File
+	logMutex      sync.Mutex
 )
+
+func initPacketLogging() error {
+	var err error
+	logFile, err = os.OpenFile("packet_log.json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func closePacketLogging() {
+	if logFile != nil {
+		logFile.Close()
+	}
+}
+
+func logPacketToFile(packet Packet) error {
+	logMutex.Lock()
+	defer logMutex.Unlock()
+
+	jsonPacket, err := json.Marshal(packet)
+	if err != nil {
+		return err
+	}
+
+	if _, err := logFile.Write(append(jsonPacket, '\n')); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func processPackets() {
 	log.Info("Started processing packets")
@@ -26,6 +62,12 @@ func processPackets() {
 		}
 		log.Infof("Processing packet: timestamp=%v, length=%d",
 			packet.Timestamp, len(packet.Data))
+
+		// Log packet to JSON file
+		if err := logPacketToFile(packet); err != nil {
+			log.Errorf("Failed to log packet to file: %v", err)
+		}
+
 		parseData(packet.Data)
 		notifyNewPacket() // Notify clients about the new packet
 	}
@@ -59,9 +101,17 @@ func parseData(data []byte) {
 		return
 	}
 
-	// Parse resolution (we're not using it currently, but it might be useful later)
-	resolution := string(data[3:5])
-	log.Infof("Resolution: %s", resolution)
+	// Parse resolution
+	resolutionStr := string(data[3:5])
+	resolution, err := strconv.ParseUint(resolutionStr, 16, 16)
+	if err != nil {
+		log.Warnf("Error parsing resolution: %v", err)
+		return
+	}
+	expectedResolution := uint64((config.Rows * config.Columns) / 8)
+	if resolution != expectedResolution {
+		log.Warnf("Unexpected resolution. Expected: %d, Got: %d", expectedResolution, resolution)
+	}
 
 	// Parse pixel data
 	pixelData := data[5 : len(data)-3]

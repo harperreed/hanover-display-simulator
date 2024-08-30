@@ -21,6 +21,11 @@ func main() {
 
 	// Initialize display
 	initializeDisplay()
+	err = initPacketLogging()
+	if err != nil {
+		log.Fatalf("Error initializing packet logging: %v", err)
+	}
+	defer closePacketLogging()
 
 	go runWebServer()
 	go processPackets()

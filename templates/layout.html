@@ -6,22 +6,63 @@
     <script>
         function setupEventSource() {
             var eventSource = new EventSource("/events");
+            var updateCount = 0;
+
             eventSource.onmessage = function(event) {
-                document.getElementById("display-container").innerHTML = event.data;
+                updateCount++;
+                console.log("Received update:", event.data);
+
+                try {
+                    var data = JSON.parse(event.data);
+
+                    // Update the display
+                    document.getElementById("display-container").innerHTML = data.html;
+
+                    // Update the JSON data
+                    var jsonData = JSON.parse(data.json);
+                    var formattedJson = formatJson(jsonData);
+                    document.getElementById("json-data").textContent = formattedJson;
+
+                    // Update debug info
+                    document.getElementById("debug-info").textContent = "Updates received: " + updateCount;
+                } catch (error) {
+                    console.error("Error parsing event data:", error);
+                }
             };
+
             eventSource.onerror = function(error) {
                 console.error("EventSource failed:", error);
+                document.getElementById("debug-info").textContent += "\nEventSource error occurred";
                 eventSource.close();
                 setTimeout(setupEventSource, 5000);
             };
+
+            console.log("EventSource set up completed");
         }
-        window.onload = setupEventSource;
+
+        function formatJson(jsonData) {
+            return '[\n' + jsonData.map(row => '  [' + row.join(', ') + ']').join(',\n') + '\n]';
+        }
+
+        window.onload = function() {
+            setupEventSource();
+            var initialJsonData = JSON.parse(document.getElementById("json-data").textContent);
+            document.getElementById("json-data").textContent = formatJson(initialJsonData);
+        };
     </script>
 </head>
 <body>
     <h1>Hanover Display Simulator</h1>
     <div id="display-container">
         {{template "display" .}}
+    </div>
+    <div id="json-container">
+        <h2>JSON Representation:</h2>
+        <pre id="json-data">{{.JSONData}}</pre>
+    </div>
+    <div id="debug-container">
+        <h2>Debug Information:</h2>
+        <pre id="debug-info"></pre>
     </div>
 </body>
 </html>
