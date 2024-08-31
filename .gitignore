@@ -1,3 +1,4 @@
 hanover-simulator
 output.txt
 *.log
+packet_log.json
