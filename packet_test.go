@@ -9,78 +9,89 @@ import (
 )
 
 func TestReassemblePacket(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    []byte
-		expected [][]byte
-	}{
-		{
-			name:     "Complete packet",
-			input:    []byte{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00},
-			expected: [][]byte{{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00}},
-		},
-		{
-			name:     "Partial packet",
-			input:    []byte{0x02, 0x11, 0x01, 0x00, 0xC0},
-			expected: [][]byte{},
-		},
-		{
-			name:     "Multiple complete packets",
-			input:    []byte{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00, 0x02, 0x11, 0x01, 0x00, 0xC0, 0xBB, 0x03, 0x00, 0x00},
-			expected: [][]byte{{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00}, {0x02, 0x11, 0x01, 0x00, 0xC0, 0xBB, 0x03, 0x00, 0x00}},
-		},
-	}
+    testCases := []struct {
+        name     string
+        input    []byte
+        expected [][]byte
+    }{
+        {
+            name:     "Complete packet",
+            input:    []byte{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00},
+            expected: [][]byte{{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00}},
+        },
+        {
+            name:     "Partial packet",
+            input:    []byte{0x02, 0x11, 0x01, 0x00, 0xC0},
+            expected: [][]byte{},
+        },
+        {
+            name:     "Multiple complete packets",
+            input:    []byte{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00, 0x02, 0x11, 0x01, 0x00, 0xC0, 0xBB, 0x03, 0x00, 0x00},
+            expected: [][]byte{{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00}, {0x02, 0x11, 0x01, 0x00, 0xC0, 0xBB, 0x03, 0x00, 0x00}},
+        },
+        {
+            name:     "Packet with extra data before and after",
+            input:    []byte{0xFF, 0xFF, 0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00, 0xFF, 0xFF},
+            expected: [][]byte{{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0x03, 0x00, 0x00}},
+        },
+    }
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := reassemblePacket(tc.input)
-			if !bytesSliceEqual(result, tc.expected) {
-				t.Errorf("Expected %v, got %v", tc.expected, result)
-			}
-		})
-	}
+    for _, tc := range testCases {
+        t.Run(tc.name, func(t *testing.T) {
+            partialPacket = nil // Reset partial packet before each test
+            result := reassemblePacket(tc.input)
+            if !bytesSliceEqual(result, tc.expected) {
+                t.Errorf("Expected %v, got %v", tc.expected, result)
+            }
+        })
+    }
 }
 
 func TestParseData(t *testing.T) {
-	// Initialize the display for testing
-	config = Config{
-		Columns: 96,
-		Rows:    16,
-		Address: 1,
-	}
-	initializeDisplay()
+    // Initialize the display for testing
+    config = Config{
+        Columns: 96,
+        Rows:    16,
+        Address: 1,
+    }
+    initializeDisplay()
 
-	testCases := []struct {
-		name           string
-		input          []byte
-		expectedPixels int
-	}{
-		{
-			name:           "Valid packet",
-			input:          []byte{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0xAA, 0x03, 0x00, 0x00},
-			expectedPixels: 8, // 0xAA in binary is 10101010, so 4 pixels per byte
-		},
-		{
-			name:           "Invalid start byte",
-			input:          []byte{0x03, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0xAA, 0x03, 0x00, 0x00},
-			expectedPixels: 0,
-		},
-		{
-			name:           "Invalid end byte",
-			input:          []byte{0x02, 0x11, 0x01, 0x00, 0xC0, 0xAA, 0xAA, 0x02, 0x00, 0x00},
-			expectedPixels: 0,
-		},
-	}
+    testCases := []struct {
+        name           string
+        input          []byte
+        expectedPixels int
+    }{
+        {
+            name:           "Valid packet",
+            input:          []byte{0x02, '1', '1', '0', 'C', 0xAA, 0xAA, 0x03, 0x00, 0x00},
+            expectedPixels: 8, // 0xAA in binary is 10101010, so 4 pixels per byte
+        },
+        {
+            name:           "Invalid start byte",
+            input:          []byte{0x03, '1', '1', '0', 'C', 0xAA, 0xAA, 0x03, 0x00, 0x00},
+            expectedPixels: 0,
+        },
+        {
+            name:           "Invalid end byte",
+            input:          []byte{0x02, '1', '1', '0', 'C', 0xAA, 0xAA, 0x02, 0x00, 0x00},
+            expectedPixels: 0,
+        },
+        {
+            name:           "Wrong address",
+            input:          []byte{0x02, '1', '2', '0', 'C', 0xAA, 0xAA, 0x03, 0x00, 0x00},
+            expectedPixels: 0,
+        },
+    }
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			parseData(tc.input)
-			updatedPixels := countUpdatedPixels()
-			if updatedPixels != tc.expectedPixels {
-				t.Errorf("Expected %d updated pixels, got %d", tc.expectedPixels, updatedPixels)
-			}
-		})
-	}
+    for _, tc := range testCases {
+        t.Run(tc.name, func(t *testing.T) {
+            parseData(tc.input)
+            updatedPixels := countUpdatedPixels()
+            if updatedPixels != tc.expectedPixels {
+                t.Errorf("Expected %d updated pixels, got %d", tc.expectedPixels, updatedPixels)
+            }
+        })
+    }
 }
 
 func TestLogPacketToFile(t *testing.T) {
