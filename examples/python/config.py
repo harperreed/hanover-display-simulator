@@ -1,16 +1,19 @@
 import os
+import yaml
 
-# Serial port configuration
-SERIAL_PORT = '/dev/pts/1'  # Update this to the correct port for your system
-BAUD_RATE = 4800
+with open('../../config.yaml', 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+SERIAL_PORT = config['serial_port_in']  # Load from config.yaml
+BAUD_RATE = config['baud_rate']
 
 # Logging configuration
 LOG_FILE = 'proxy.log'
 
 # Display configuration
-SIGN_ADDRESS = 1
-SIGN_WIDTH = 96
-SIGN_HEIGHT = 16
+SIGN_ADDRESS = config['address']
+SIGN_WIDTH = config['columns']
+SIGN_HEIGHT = config['rows']
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

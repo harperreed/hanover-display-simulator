@@ -1,6 +1,7 @@
 columns: 96
 rows: 16
 address: 1
-serial_port: "/dev/pts/2"
+serial_port: "/dev/pts/6"
+serial_port_in: "/dev/pts/7"
 baud_rate: 4800
 web_port: ":8080"

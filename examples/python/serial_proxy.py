@@ -1,11 +1,17 @@
 import serial
 import json
 from datetime import datetime
+import logging
 
 class SerialProxy:
     def __init__(self, port, baudrate, log_file='serial_log.json'):
         self.serial = serial.Serial(port, baudrate)
+        self.logger = logging.getLogger(__name__)
         self.log_file = log_file
+        self._initialize_logging()
+
+    def _initialize_logging(self):
+        self.log("SESSION", "START")
 
     def write(self, data):
         self.log("WRITE", data)
@@ -65,7 +71,7 @@ class SerialProxy:
             "operation": operation,
             "data": data.hex() if isinstance(data, bytes) else str(data)
         }
+        self.logger.info(log_entry)
         with open(self.log_file, 'a') as f:
             json.dump(log_entry, f)
             f.write('\n')  # Add a newline for readability and to separate entries
-

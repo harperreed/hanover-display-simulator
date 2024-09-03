@@ -1,0 +1,7 @@
+[tasks.llm_helper_generate_output_txt]
+description = 'Generate a output.txt using repo2txt'
+# you can specify a multiline script instead of individual commands
+run = """
+#!/usr/bin/env bash
+repo2txt --ignore-files yarn.lock package-lock.json hanover-simulator packet_log.json .env --exclude-dir node_modules examples
+"""
