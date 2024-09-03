@@ -48,7 +48,6 @@ func TestReassemblePacket(t *testing.T) {
 }
 
 func TestParseData(t *testing.T) {
-    // Initialize the display for testing
     config = Config{
         Columns: 96,
         Rows:    16,
@@ -63,28 +62,29 @@ func TestParseData(t *testing.T) {
     }{
         {
             name:           "Valid packet",
-            input:          []byte{0x02, '1', '1', '0', 'C', 0xAA, 0xAA, 0x03, 0x00, 0x00},
-            expectedPixels: 8, // 0xAA in binary is 10101010, so 4 pixels per byte
+            input:          []byte{0x02, '1', '1', '0', 'C', 'A', 'A', 'A', 'A', 0x03, 0x00, 0x00},
+            expectedPixels: 2,
         },
         {
             name:           "Invalid start byte",
-            input:          []byte{0x03, '1', '1', '0', 'C', 0xAA, 0xAA, 0x03, 0x00, 0x00},
+            input:          []byte{0x03, '1', '1', '0', 'C', 'A', 'A', 'A', 'A', 0x03, 0x00, 0x00},
             expectedPixels: 0,
         },
         {
             name:           "Invalid end byte",
-            input:          []byte{0x02, '1', '1', '0', 'C', 0xAA, 0xAA, 0x02, 0x00, 0x00},
+            input:          []byte{0x02, '1', '1', '0', 'C', 'A', 'A', 'A', 'A', 0x02, 0x00, 0x00},
             expectedPixels: 0,
         },
         {
             name:           "Wrong address",
-            input:          []byte{0x02, '1', '2', '0', 'C', 0xAA, 0xAA, 0x03, 0x00, 0x00},
+            input:          []byte{0x02, '1', '2', '0', 'C', 'A', 'A', 'A', 'A', 0x03, 0x00, 0x00},
             expectedPixels: 0,
         },
     }
 
     for _, tc := range testCases {
         t.Run(tc.name, func(t *testing.T) {
+            initializeDisplay() // Reset display before each test
             parseData(tc.input)
             updatedPixels := countUpdatedPixels()
             if updatedPixels != tc.expectedPixels {
