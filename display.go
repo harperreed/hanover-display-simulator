@@ -27,8 +27,9 @@ func updateDisplay(pixelData []byte) int {
 
     updatedPixels := 0
     byteIndex := 0
+
     for col := 0; col < config.Columns; col++ {
-        for rowByte := 0; rowByte < config.Rows/8; rowByte++ {
+        for rowByte := 0; rowByte < (config.Rows + 7) / 8; rowByte++ {
             if byteIndex+1 >= len(pixelData) {
                 return updatedPixels
             }

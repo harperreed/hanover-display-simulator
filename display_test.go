@@ -37,21 +37,82 @@ func TestUpdateDisplayWithVariousInputs(t *testing.T) {
         name           string
         input          []byte
         expectedPixels int
+        checkPattern   func([][]bool) bool
     }{
         {
             name:           "All pixels on",
             input:          []byte(strings.Repeat("FF", 24)),
             expectedPixels: 96 * 16,
+            checkPattern: func(pixels [][]bool) bool {
+                for _, row := range pixels {
+                    for _, pixel := range row {
+                        if !pixel {
+                            return false
+                        }
+                    }
+                }
+                return true
+            },
         },
         {
             name:           "All pixels off",
             input:          []byte(strings.Repeat("00", 24)),
             expectedPixels: 0,
+            checkPattern: func(pixels [][]bool) bool {
+                for _, row := range pixels {
+                    for _, pixel := range row {
+                        if pixel {
+                            return false
+                        }
+                    }
+                }
+                return true
+            },
         },
         {
             name:           "Alternating pixels",
             input:          []byte(strings.Repeat("AA", 24)),
             expectedPixels: (96 * 16) / 2,
+            checkPattern: func(pixels [][]bool) bool {
+                for i, row := range pixels {
+                    for j, pixel := range row {
+                        if pixel != ((i+j)%2 == 0) {
+                            return false
+                        }
+                    }
+                }
+                return true
+            },
+        },
+        {
+            name:           "Alternating columns",
+            input:          []byte(strings.Repeat("AA", 24)),
+            expectedPixels: (96 * 16) / 2,
+            checkPattern: func(pixels [][]bool) bool {
+                for _, row := range pixels {
+                    for j, pixel := range row {
+                        if pixel != (j%2 == 0) {
+                            return false
+                        }
+                    }
+                }
+                return true
+            },
+        },
+        {
+            name:           "Alternating rows",
+            input:          []byte(strings.Repeat("FF00", 12)),
+            expectedPixels: (96 * 16) / 2,
+            checkPattern: func(pixels [][]bool) bool {
+                for i, row := range pixels {
+                    for _, pixel := range row {
+                        if pixel != (i%2 == 0) {
+                            return false
+                        }
+                    }
+                }
+                return true
+            },
         },
     }
 
@@ -69,6 +130,11 @@ func TestUpdateDisplayWithVariousInputs(t *testing.T) {
             actualPixels := countUpdatedPixelsInTest()
             if actualPixels != tc.expectedPixels {
                 t.Errorf("Display state incorrect. Expected %d pixels on, got %d", tc.expectedPixels, actualPixels)
+            }
+
+            // Check the pattern
+            if !tc.checkPattern(display.pixels) {
+                t.Errorf("Display pattern is incorrect for test case: %s", tc.name)
             }
 
             // Print the first few rows for debugging
