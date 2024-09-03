@@ -1,7 +1,7 @@
 var FlipDot = require('flipdot-display');
 var dateFormat = require('dateformat');
 
-var flippy = new FlipDot('/dev/pts/1',1,16,96);
+var flippy = new FlipDot('/dev/pts/7',1,16,96);
 
 flippy.on("error", function(err) {
   console.log(err);
