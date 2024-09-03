@@ -1,48 +1,54 @@
-# Hanover Display Simulator
+```markdown
+# 🖥️ Hanover Display Simulator
 
-## Overview
+## 📋 Overview
 
-The Hanover Display Simulator is a Go application that simulates a Hanover flipdot display. It listens for packets on a serial port, processes the data, and visualizes the display state through a web interface. This simulator is useful for testing and developing applications that interact with Hanover displays without needing the physical hardware.
+Welcome to the **Hanover Display Simulator**! This Go application is designed to emulate a Hanover flipdot display. It connects to a serial port to receive packets, processes this data, and visualizes the display's state via a web interface. This tool is essential for testing and developing applications that interact with actual Hanover displays without having the physical hardware at hand.
 
-## Features
+## 🎉 Features
 
-- Simulates a Hanover flipdot display with configurable dimensions
-- Listens for data on a serial port
-- Processes incoming packets according to the Hanover protocol
-- Provides a web interface to visualize the current display state
-- Includes a test simulator for generating sample data
-- Offers endpoints for retrieving packet history and raw display data
+- 🎨 Simulates a Hanover flipdot display with customizable dimensions.
+- 📡 Listens for data over a specified serial port.
+- 📜 Processes incoming packets following the Hanover display protocol.
+- 🌐 Provides a web interface to visualize the live display state.
+- 🧪 Incorporates a test simulator for generating sample display data.
+- 🔍 Offers endpoints to retrieve packet history and raw display data.
 
-## Prerequisites
+## 👨‍💻 How to Use
+
+### 1. Prerequisites
+
+Before running the simulator, ensure you have the following requirements:
 
 - Go 1.15 or higher
 - Git
-- socat (for creating virtual serial ports)
+- `socat` for creating virtual serial ports
 
-## Installation
+### 2. Installation
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/harperreed/hanover-display-simulator.git
-   cd hanover-display-simulator
-   ```
+Follow these steps to clone and set up the project:
 
-2. Install the required dependencies:
-   ```
-   go get github.com/gin-gonic/gin
-   go get github.com/sirupsen/logrus
-   go get github.com/tarm/serial
-   go get gopkg.in/yaml.v2
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/harperreed/hanover-display-simulator.git
+cd hanover-display-simulator
 
-3. Install socat (if not already installed):
-   - On Ubuntu/Debian: `sudo apt-get install socat`
-   - On macOS with Homebrew: `brew install socat`
-   - On other systems, refer to the socat documentation for installation instructions.
+# Install dependencies
+go get github.com/gin-gonic/gin
+go get github.com/sirupsen/logrus
+go get github.com/tarm/serial
+go get gopkg.in/yaml.v2
 
-## Configuration
+# Install socat (if you haven't already)
+# For Ubuntu/Debian:
+sudo apt-get install socat
+# For macOS with Homebrew:
+brew install socat
+```
 
-Create a `config.yaml` file in the project root directory with the following content:
+### 3. Configure the Simulator
+
+Create a `config.yaml` file in the project root with the following content:
 
 ```yaml
 columns: 96
@@ -53,87 +59,61 @@ baud_rate: 4800
 web_port: ":8080"
 ```
 
-Adjust the values as needed to match your desired configuration.
+Adjust the values based on your system's setup.
 
-## Setting up Virtual Serial Ports
+### 4. Setting up Virtual Serial Ports
 
-To test the simulator without physical hardware, you can use socat to create a pair of virtual serial ports:
+To test the simulator without actual hardware, use `socat` to create virtual serial ports:
 
-1. Open a terminal and run the following command:
-   ```
-   socat -d -d pty,raw,echo=0 pty,raw,echo=0
-   ```
+1. Run the following command in your terminal:
 
-2. socat will output two device names, for example:
-   ```
-   2023/04/01 12:00:00 socat[1234] N PTY is /dev/pts/2
-   2023/04/01 12:00:00 socat[1234] N PTY is /dev/pts/3
-   ```
+    ```bash
+    socat -d -d pty,raw,echo=0 pty,raw,echo=0
+    ```
 
-3. Update the `serial_port` in your `config.yaml` to use one of these devices (e.g., `/dev/pts/2`).
+2. Update the `serial_port` in your `config.yaml` with one of the device names output by `socat`.
 
-4. You can use the other device (e.g., `/dev/pts/3`) to send test data to the simulator.
+3. Keep the `socat` command running while you use the simulator.
 
-Keep this socat process running in the background while using the simulator.
+### 5. Start the Simulator
 
-## Usage
+To launch the simulator, execute:
 
-1. Start the simulator:
-   ```
-   go run main.go
-   ```
-
-2. The application will start and display log messages in the console.
-
-3. Open a web browser and navigate to `http://localhost:8080` to see the visual representation of the display.
-
-4. To send test data, the application includes a test simulator that sends packets periodically.
-
-5. To stop the application, press Ctrl+C. The application will shut down gracefully.
-
-## Web Endpoints
-
-- `/`: Displays a visual representation of the current display state
-- `/packets`: Returns a JSON array of received packet metadata
-- `/display`: Returns a JSON representation of the current display state
-
-## Sending Custom Data
-
-To send custom data to the simulator, you can use any serial communication tool to send packets to the configured serial port. For example, using the second virtual serial port created by socat:
-
-```
-echo -ne "\x02\x11\x01\x00\xC0\xAA\xAA\xAA...\x03" > /dev/pts/3
+```bash
+go run main.go
 ```
 
-The packet format should follow the Hanover protocol:
+### 6. View the Display
 
-```
-[STX (0x02)][Command (0x1)][Address (0x1)][Resolution (2 bytes)][Pixel Data][ETX (0x03)][Checksum (2 bytes)]
-```
+Open a web browser and navigate to `http://localhost:8080` to view the display's visual representation. To send test data, use the second virtual serial port created by `socat`.
 
-## Development
+## 🚀 Tech Info
 
-The main components of the application are:
+This project is built using the Go programming language. Some of the key components include:
 
-- `main.go`: Contains the main application logic
-- `config.yaml`: Configuration file for the application
+- **Main Logic:** The core logic resides in `main.go`, which handles the application flow.
+- **Serial Communication:** Implemented via the `serial.go`, enabling the reading of incoming packets.
+- **Display Management:** Managed by `display.go`, this file maintains and updates the display state.
+- **Web Server:** The `webserver.go` file provides a web interface using the Gin web framework, serving display updates and packet information.
+- **Configuration Management:** Configuration is handled via `config.yaml` and `config.go`, ensuring easy adjustments.
 
-To modify the behavior of the simulator, you can edit the `parseData` function in `main.go`.
+### Dependencies
 
-## Troubleshooting
+- `gin-gonic/gin` for web server capabilities
+- `sirupsen/logrus` for structured logging
+- `tarm/serial` for serial port communication
+- `gopkg.in/yaml.v2` for YAML file parsing
 
-If you encounter issues:
+## 🙌 Contributing
 
-1. Check that the serial port in `config.yaml` matches the device created by socat.
-2. Ensure that socat is running and the virtual serial ports are created successfully.
-3. Verify that no other application is using the specified serial port.
-4. Check that the incoming data matches the expected Hanover protocol format.
-5. If the simulator is not receiving data, try sending data to the other virtual serial port created by socat.
+Contributions are welcome! If you have suggestions for improvements or features, feel free to submit a pull request!
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
+## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+Happy Coding! 🌍
+```
+
