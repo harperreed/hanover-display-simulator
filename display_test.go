@@ -1,166 +1,123 @@
 package main
 
 import (
-    "strings"
-    "testing"
+	"reflect"
+	"sync"
+	"fmt"
+	"testing"
 )
 
-func TestInitializeDisplay(t *testing.T) {
-    config = Config{
-        Columns: 96,
-        Rows:    16,
-    }
-
-    initializeDisplay()
-
-    if len(display.pixels) != config.Rows {
-        t.Errorf("Expected %d rows, got %d", config.Rows, len(display.pixels))
-    }
-
-    for _, row := range display.pixels {
-        if len(row) != config.Columns {
-            t.Errorf("Expected %d columns, got %d", config.Columns, len(row))
-        }
-    }
-}
-
-func TestUpdateDisplayWithVariousInputs(t *testing.T) {
-    config = Config{
-        Columns: 96,
-        Rows:    16,
-        Address: 1,
-    }
-
-    initializeDisplay()
-
-    testCases := []struct {
-        name           string
-        input          []byte
-        expectedPixels int
-        checkPattern   func([][]bool) bool
+func TestUpdateDisplay(t *testing.T) {
+    tests := []struct {
+        name             string
+        initialDisplay   [][]bool
+        pixelData        []byte
+        expectedDisplay  [][]bool
+        expectedUpdates  int
     }{
         {
-            name:           "All pixels on",
-            input:          []byte(strings.Repeat("FF", 24)),
-            expectedPixels: 192,
-            checkPattern: func(pixels [][]bool) bool {
-                for i := 0; i < 12; i++ {
-                    for j := 0; j < 96; j++ {
-                        if !pixels[i][j] {
-                            return false
-                        }
-                    }
-                }
-                return true
-            },
+            name:           "Empty display, no changes",
+            initialDisplay: makeEmptyDisplay(),
+            pixelData:      []byte("0000000000000000000000000000000000000000000000000000000000000000000000"),
+            expectedDisplay: makeEmptyDisplay(),
+            expectedUpdates: 0,
         },
         {
-            name:           "All pixels off",
-            input:          []byte(strings.Repeat("00", 24)),
-            expectedPixels: 0,
-            checkPattern: func(pixels [][]bool) bool {
-                for _, row := range pixels {
-                    for _, pixel := range row {
-                        if pixel {
-                            return false
-                        }
-                    }
-                }
-                return true
-            },
+            name:           "Set all pixels to on",
+            initialDisplay: makeEmptyDisplay(),
+            pixelData:      []byte("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+            expectedDisplay: makeFullDisplay(true),
+            expectedUpdates: 16 * 56,
         },
         {
-            name:           "Alternating pixels",
-            input:          []byte(strings.Repeat("AA", 24)),
-            expectedPixels: 96,
-            checkPattern: func(pixels [][]bool) bool {
-                for i := 0; i < 12; i += 2 {
-                    for j := 0; j < 96; j++ {
-                        if pixels[i][j] != (j%2 == 0) {
-                            return false
-                        }
-                        if pixels[i+1][j] {
-                            return false
-                        }
-                    }
-                }
-                return true
-            },
+            name:           "Set all pixels to off",
+            initialDisplay: makeFullDisplay(true),
+            pixelData:      []byte("0000000000000000000000000000000000000000000000000000000000000000000000"),
+            expectedDisplay: makeEmptyDisplay(),
+            expectedUpdates: 16 * 56,
         },
         {
-            name:           "Alternating columns",
-            input:          []byte(strings.Repeat("AA", 24)),
-            expectedPixels: 96,
-            checkPattern: func(pixels [][]bool) bool {
-                for i := 0; i < 12; i += 2 {
-                    for j := 0; j < 96; j++ {
-                        if pixels[i][j] != (j%2 == 0) {
-                            return false
-                        }
-                        if pixels[i+1][j] {
-                            return false
-                        }
-                    }
-                }
-                return true
-            },
+            name:           "Set alternate columns",
+            initialDisplay: makeEmptyDisplay(),
+            pixelData:      []byte("FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00"),
+            expectedDisplay: makeAlternateColumnDisplay(),
+            expectedUpdates: 16 * 28,
         },
         {
-            name:           "Alternating rows",
-            input:          []byte(strings.Repeat("FF00", 12)),
-            expectedPixels: 96,
-            checkPattern: func(pixels [][]bool) bool {
-                for i := 0; i < 12; i += 2 {
-                    for j := 0; j < 96; j++ {
-                        if !pixels[i][j] {
-                            return false
-                        }
-                        if pixels[i+1][j] {
-                            return false
-                        }
-                    }
-                }
-                return true
-            },
+            name:           "Invalid data",
+            initialDisplay: makeEmptyDisplay(),
+            pixelData:      []byte("INVALID"),
+            expectedDisplay: makeEmptyDisplay(),
+            expectedUpdates: 0,
+        },
+        {
+            name:           "Partial update",
+            initialDisplay: makeEmptyDisplay(),
+            pixelData:      []byte("FFFF"),
+            expectedDisplay: makePartiallyUpdatedDisplay(),
+            expectedUpdates: 16,
         },
     }
 
-    for _, tc := range testCases {
-        t.Run(tc.name, func(t *testing.T) {
-            initializeDisplay()
-            updatedPixels := updateDisplay(tc.input)
-            if updatedPixels != tc.expectedPixels {
-                t.Errorf("Expected %d updated pixels, got %d", tc.expectedPixels, updatedPixels)
+	for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            display = HanoverDisplay{
+                pixels: tt.initialDisplay,
+                mu:     sync.Mutex{},
             }
 
-            if !tc.checkPattern(display.pixels) {
-                t.Errorf("Display pattern is incorrect for test case: %s", tc.name)
+            fmt.Printf("Running test: %s\n", tt.name)
+            fmt.Printf("Input pixel data: %X\n", tt.pixelData)
+
+            updatedPixels := updateDisplay(tt.pixelData)
+
+            if updatedPixels != tt.expectedUpdates {
+                t.Errorf("Expected %d updated pixels, got %d", tt.expectedUpdates, updatedPixels)
             }
 
-            for i := 0; i < minInt(5, len(display.pixels)); i++ {
-                t.Logf("Row %d: %v", i, display.pixels[i][:minInt(10, len(display.pixels[i]))])
+            if !reflect.DeepEqual(display.pixels, tt.expectedDisplay) {
+                t.Errorf("Display state doesn't match expected state")
+                t.Logf("Expected:\n%v", tt.expectedDisplay)
+                t.Logf("Got:\n%v", display.pixels)
             }
+
+            fmt.Printf("Test completed: %s\n\n", tt.name)
         })
     }
 }
-
-// Helper function to count updated pixels
-func countUpdatedPixelsInTest() int {
-    count := 0
-    for _, row := range display.pixels {
-        for _, pixel := range row {
-            if pixel {
-                count++
-            }
-        }
-    }
-    return count
+func makeEmptyDisplay() [][]bool {
+	display := make([][]bool, config.Rows)
+	for i := range display {
+		display[i] = make([]bool, config.Columns)
+	}
+	return display
 }
 
-// Helper function to get the minimum of two integers
-func minInt(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
+func makeFullDisplay(value bool) [][]bool {
+	display := make([][]bool, config.Rows)
+	for i := range display {
+		display[i] = make([]bool, config.Columns)
+		for j := range display[i] {
+			display[i][j] = value
+		}
+	}
+	return display
+}
+
+func makeAlternateColumnDisplay() [][]bool {
+	display := makeEmptyDisplay()
+	for col := 0; col < config.Columns; col += 2 {
+		for row := 0; row < config.Rows; row++ {
+			display[row][col] = true
+		}
+	}
+	return display
+}
+
+func makePartiallyUpdatedDisplay() [][]bool {
+	display := makeEmptyDisplay()
+	for row := 0; row < config.Rows; row++ {
+		display[row][0] = true
+	}
+	return display
 }

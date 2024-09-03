@@ -74,14 +74,14 @@ func processPackets() {
 }
 
 func parseData(data []byte) {
-    log.Infof("Parsing data: length=%d", len(data))
-    if len(data) < 9 { // Minimum length: STX + CMD + ADDR + RES(2) + ETX + CHECKSUM(2)
+	log.Infof("Parsing data: length=%d, first byte=0x%02X, last byte=0x%02X", len(data), data[0], data[len(data)-1])
+    if len(data) < 9 {
         log.Warn("Received data too short")
         return
     }
 
     if data[0] != 0x02 || data[len(data)-3] != 0x03 {
-        log.Warn("Invalid start or end byte")
+        log.Warnf("Invalid start or end byte: start=0x%02X, end=0x%02X", data[0], data[len(data)-3])
         return
     }
 
