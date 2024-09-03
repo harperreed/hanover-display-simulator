@@ -24,6 +24,7 @@ Each packet sent to the Hanover display follows this structure:
    - Specifies the type of command being sent
    - Known commands:
      - 0x31 ('1'): Write image data
+   - Other command values may exist for different operations (e.g., starting/stopping test sequences)
 
 3. **Address**
    - 1 byte
@@ -36,11 +37,13 @@ Each packet sent to the Hanover display follows this structure:
    - ASCII representation of a hexadecimal value
    - Represents (width * height) / 8
    - Example: For a 96x16 display, resolution would be 0x00C0 (192), sent as "C0"
+   - Example: For a 128x16 display, resolution would be 0x0100 (256), sent as "00"
 
 5. **Pixel Data**
    - Variable length
    - Each byte represents 8 pixels (1 bit per pixel)
    - Data is sent column-wise, from top to bottom, then left to right
+   - Within each byte, bits represent pixels from bottom to top
    - Each byte is sent as two ASCII characters representing its hexadecimal value
    - Example: 0xAA would be sent as "AA"
 
@@ -66,16 +69,16 @@ The pixel data is organized as follows:
 
 - Data is sent column-wise, starting from the top-left corner
 - Each column is represented by (height / 8) bytes (rounded up)
-- Bits in each byte represent pixels from top to bottom
+- Bits in each byte represent pixels from bottom to top
 - A '1' bit typically represents an "on" (visible) pixel
 - A '0' bit typically represents an "off" (hidden) pixel
 
 Example for a 16x16 display:
 ```
-Column 1: [Byte 1: Pixels 1-8][Byte 2: Pixels 9-16]
-Column 2: [Byte 1: Pixels 1-8][Byte 2: Pixels 9-16]
+Column 1: [Byte 1: Pixels 1-8 (bottom to top)][Byte 2: Pixels 9-16 (bottom to top)]
+Column 2: [Byte 1: Pixels 1-8 (bottom to top)][Byte 2: Pixels 9-16 (bottom to top)]
 ...
-Column 16: [Byte 1: Pixels 1-8][Byte 2: Pixels 9-16]
+Column 16: [Byte 1: Pixels 1-8 (bottom to top)][Byte 2: Pixels 9-16 (bottom to top)]
 ```
 
 ## Communication Parameters
@@ -109,6 +112,7 @@ For a 96x16 display with address 1, sending a pattern where all even columns are
 3. Implement timeout mechanisms for incomplete packets.
 4. Consider implementing error handling and retransmission strategies.
 5. Ensure proper handling of different display sizes and resolutions.
+6. Be aware that different commands (beyond writing image data) may exist for operations like starting or stopping test sequences. These would use different values for the Command byte.
 
 ## SDK Considerations
 
